@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Crypto Pro</title>
-    <!-- Telegram aur Adsgram SDKs -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
@@ -25,7 +24,8 @@
         .bg-ring { stroke: #f1f5f9; }
         .progress-ring { stroke: #10b981; stroke-linecap: round; stroke-dasharray: 440; stroke-dashoffset: 440; transition: stroke-dashoffset 0.5s ease; }
         .reward-text { position: absolute; text-align: center; }
-        .reward-text .amount { font-size: 26px; font-weight: 800; color: #10b981; }
+        /* Font thoda chhota kiya hai taaki lamba BNB amount (0.000005) fit aa jaye */
+        .reward-text .amount { font-size: 22px; font-weight: 800; color: #10b981; }
         .reward-text .currency { font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-top: 2px; }
 
         .action-btn { width: 100%; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: transform 0.1s; }
@@ -50,8 +50,8 @@
 
     <div class="header">
         <div class="header-text">
-            <h1>Earn USDT by completing simple tasks</h1>
-            <p>Complete tasks to earn USDT rewards instantly</p>
+            <h1>Earn BNB by completing simple tasks</h1>
+            <p>Complete tasks to earn BNB rewards instantly</p>
         </div>
         <div class="badge" id="doneBadge">0/9<br>done</div>
     </div>
@@ -65,8 +65,8 @@
                 <circle class="progress-ring" id="circleRing" cx="80" cy="80" r="70"></circle>
             </svg>
             <div class="reward-text">
-                <div class="amount" id="rewardAmount">+0.008</div>
-                <div class="currency">USDT</div>
+                <div class="amount" id="rewardAmount">+0.000010</div>
+                <div class="currency">BNB</div>
             </div>
         </div>
 
@@ -85,12 +85,11 @@
         </div>
     </div>
 
-    <!-- Warning Popup -->
     <div class="modal-overlay" id="warningModal">
         <div class="modal-box">
             <div class="modal-icon">⏳</div>
             <div class="modal-title" id="modalTitle">Watch Full Video</div>
-            <div class="modal-desc" id="modalDesc">You must watch the video for at least <b>40 seconds</b> before claiming your USDT reward. Please try again!</div>
+            <div class="modal-desc" id="modalDesc">You must watch the video for at least <b>40 seconds</b> before claiming your BNB reward. Please try again!</div>
             <button class="modal-btn" onclick="closeModal()">Try Again</button>
         </div>
     </div>
@@ -104,33 +103,24 @@
         let tasksDone = 0;
         let taskStartTime = null;
 
-        // ADSGRAM BLOCK ID YAHAN DAALNA HAI
         const ADSGRAM_BLOCK_ID = "YOUR_ADSGRAM_BLOCK_ID"; 
 
-        // 1. Adsgram Must-Click Interceptor
         function interceptAdsgramClick(onClickDetected) {
             const cleanupFns = [];
-
-            // Patch fetch
             const originalFetch = window.fetch;
             window.fetch = function (...args) {
                 const url = typeof args[0] === 'string' ? args[0] : args[0]?.url ?? '';
-                if (url.includes('adsgram.ai') && url.includes('type=Click')) {
-                    onClickDetected();
-                }
+                if (url.includes('adsgram.ai') && url.includes('type=Click')) onClickDetected();
                 return originalFetch.apply(this, args);
             };
             cleanupFns.push(() => { window.fetch = originalFetch; });
 
-            // Patch XMLHttpRequest
             const OriginalXHR = window.XMLHttpRequest;
             function PatchedXHR() {
                 const xhr = new OriginalXHR();
                 const originalOpen = xhr.open.bind(xhr);
                 xhr.open = function (method, url, ...rest) {
-                    if (typeof url === 'string' && url.includes('adsgram.ai') && url.includes('type=Click')) {
-                        onClickDetected();
-                    }
+                    if (typeof url === 'string' && url.includes('adsgram.ai') && url.includes('type=Click')) onClickDetected();
                     return originalOpen(method, url, ...rest);
                 };
                 return xhr;
@@ -165,7 +155,8 @@
 
             if (tasksDone < totalTasks && tasksList[tasksDone]) {
                 const current = tasksList[tasksDone];
-                document.getElementById('rewardAmount').innerText = `+${current.reward.toFixed(3)}`;
+                // Yahan toFixed(6) kiya hai taaki amount theek se show ho
+                document.getElementById('rewardAmount').innerText = `+${current.reward.toFixed(6)}`;
                 
                 if (current.type === 'youtube') {
                     document.getElementById('taskLabel').innerText = `▶️ Task #${current.id} • YouTube Video`;
@@ -183,7 +174,6 @@
             }
         }
 
-        // 2. Main Task Runner
         function startTask() {
             if (tasksDone >= 9) return;
             const currentTask = tasksList[tasksDone];
@@ -194,21 +184,17 @@
             } 
             else if (currentTask.type === 'adsgram') {
                 const AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-                
                 let goClicked = false;
                 let cleanupIntercept = null;
 
                 if (currentTask.note === 'must click') {
-                    cleanupIntercept = interceptAdsgramClick(() => {
-                        goClicked = true;
-                    });
+                    cleanupIntercept = interceptAdsgramClick(() => { goClicked = true; });
                 } else {
-                    goClicked = true; // No must-click required
+                    goClicked = true;
                 }
 
                 AdController.show().then((result) => {
                     if (cleanupIntercept) cleanupIntercept();
-
                     if (currentTask.note === 'must click' && !goClicked) {
                         showPopup("Click Required", "You must click on the 'Go!' button in the ad to get your reward. Please try again!");
                     } else {
@@ -216,7 +202,6 @@
                     }
                 }).catch((err) => {
                     if (cleanupIntercept) cleanupIntercept();
-
                     if (currentTask.note === 'must click' && goClicked) {
                         completeTaskAPI(currentTask.reward);
                     } else {
@@ -226,14 +211,12 @@
             }
         }
 
-        // 3. YouTube 40 second tracker
         document.addEventListener('visibilitychange', async () => {
             if (!document.hidden && taskStartTime !== null) {
                 const elapsedSeconds = (Date.now() - taskStartTime) / 1000;
                 taskStartTime = null; 
-
                 if (elapsedSeconds < 40) {
-                    showPopup("Watch Full Video", "You must watch the video for at least <b>40 seconds</b> before claiming your USDT reward. Please try again!");
+                    showPopup("Watch Full Video", "You must watch the video for at least <b>40 seconds</b> before claiming your BNB reward. Please try again!");
                 } else {
                     const currentTask = tasksList[tasksDone];
                     completeTaskAPI(currentTask.reward);
@@ -241,7 +224,6 @@
             }
         });
 
-        // 4. Complete Task and Update DB
         async function completeTaskAPI(rewardAmount) {
             const res = await fetch('/api/complete-task', {
                 method: 'POST',
@@ -261,10 +243,7 @@
             document.getElementById('warningModal').style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('warningModal').style.display = 'none';
-        }
-
+        function closeModal() { document.getElementById('warningModal').style.display = 'none'; }
         loadUserData();
     </script>
 </body>
