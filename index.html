@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crypto Pro</title>
+    <!-- Telegram aur Adsgram SDKs -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #eef9f2; color: #1a3b28; padding: 20px; min-height: 100vh; }
+        
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+        .header-text h1 { font-size: 24px; font-weight: 800; line-height: 1.2; color: #164229; }
+        .header-text p { font-size: 14px; color: #4a6b58; margin-top: 6px; line-height: 1.4; }
+        .badge { background: #dcf5e6; color: #15803d; font-weight: 700; font-size: 13px; padding: 8px 14px; border-radius: 20px; text-align: center; line-height: 1.2; }
+
+        .card { background: #ffffff; border-radius: 24px; padding: 28px 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04); text-align: center; }
+        .task-pill { display: inline-flex; align-items: center; gap: 6px; background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 13px; padding: 6px 16px; border-radius: 20px; margin-bottom: 28px; }
+        
+        .circle-wrap { width: 160px; height: 160px; margin: 0 auto 28px; position: relative; display: flex; align-items: center; justify-content: center; }
+        svg { transform: rotate(-90deg); width: 160px; height: 160px; }
+        circle { fill: none; stroke-width: 12; }
+        .bg-ring { stroke: #f1f5f9; }
+        .progress-ring { stroke: #10b981; stroke-linecap: round; stroke-dasharray: 440; stroke-dashoffset: 440; transition: stroke-dashoffset 0.5s ease; }
+        .reward-text { position: absolute; text-align: center; }
+        .reward-text .amount { font-size: 26px; font-weight: 800; color: #10b981; }
+        .reward-text .currency { font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-top: 2px; }
+
+        .action-btn { width: 100%; color: #fff; border: none; padding: 16px; border-radius: 16px; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: transform 0.1s; }
+        .yt-btn { background: #e11d24; box-shadow: 0 6px 16px rgba(225, 29, 36, 0.25); }
+        .ad-btn { background: #0088cc; box-shadow: 0 6px 16px rgba(0, 136, 204, 0.25); }
+        .action-btn:active { transform: scale(0.98); }
+
+        .progress-section { margin-top: 26px; text-align: left; }
+        .progress-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px; }
+        .bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #10b981; width: 0%; border-radius: 10px; transition: width 0.4s ease; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); align-items: center; justify-content: center; padding: 24px; z-index: 100; }
+        .modal-box { background: #fff; border-radius: 24px; padding: 32px 24px; text-align: center; max-width: 340px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .modal-icon { font-size: 48px; margin-bottom: 16px; }
+        .modal-title { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+        .modal-desc { font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 24px; }
+        .modal-btn { background: #10b981; color: #fff; border: none; padding: 14px 36px; border-radius: 30px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-text">
+            <h1>Earn USDT by completing simple tasks</h1>
+            <p>Complete tasks to earn USDT rewards instantly</p>
+        </div>
+        <div class="badge" id="doneBadge">0/9<br>done</div>
+    </div>
+
+    <div class="card">
+        <div class="task-pill" id="taskLabel">▶️ Task #1</div>
+
+        <div class="circle-wrap">
+            <svg>
+                <circle class="bg-ring" cx="80" cy="80" r="70"></circle>
+                <circle class="progress-ring" id="circleRing" cx="80" cy="80" r="70"></circle>
+            </svg>
+            <div class="reward-text">
+                <div class="amount" id="rewardAmount">+0.008</div>
+                <div class="currency">USDT</div>
+            </div>
+        </div>
+
+        <button id="taskButton" class="action-btn yt-btn" onclick="startTask()">
+            <span>▶️</span> Watch Video on YouTube
+        </button>
+
+        <div class="progress-section">
+            <div class="progress-labels">
+                <span>Progress</span>
+                <span id="percentText">0%</span>
+            </div>
+            <div class="bar-bg">
+                <div class="bar-fill" id="barFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning Popup -->
+    <div class="modal-overlay" id="warningModal">
+        <div class="modal-box">
+            <div class="modal-icon">⏳</div>
+            <div class="modal-title" id="modalTitle">Watch Full Video</div>
+            <div class="modal-desc" id="modalDesc">You must watch the video for at least <b>40 seconds</b> before claiming your USDT reward. Please try again!</div>
+            <button class="modal-btn" onclick="closeModal()">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id?.toString() || 'test_user_1';
+        let tasksList = [];
+        let tasksDone = 0;
+        let taskStartTime = null;
+
+        // ADSGRAM BLOCK ID YAHAN DAALNA HAI
+        const ADSGRAM_BLOCK_ID = "YOUR_ADSGRAM_BLOCK_ID"; 
+
+        // 1. Adsgram Must-Click Interceptor
+        function interceptAdsgramClick(onClickDetected) {
+            const cleanupFns = [];
+
+            // Patch fetch
+            const originalFetch = window.fetch;
+            window.fetch = function (...args) {
+                const url = typeof args[0] === 'string' ? args[0] : args[0]?.url ?? '';
+                if (url.includes('adsgram.ai') && url.includes('type=Click')) {
+                    onClickDetected();
+                }
+                return originalFetch.apply(this, args);
+            };
+            cleanupFns.push(() => { window.fetch = originalFetch; });
+
+            // Patch XMLHttpRequest
+            const OriginalXHR = window.XMLHttpRequest;
+            function PatchedXHR() {
+                const xhr = new OriginalXHR();
+                const originalOpen = xhr.open.bind(xhr);
+                xhr.open = function (method, url, ...rest) {
+                    if (typeof url === 'string' && url.includes('adsgram.ai') && url.includes('type=Click')) {
+                        onClickDetected();
+                    }
+                    return originalOpen(method, url, ...rest);
+                };
+                return xhr;
+            }
+            PatchedXHR.prototype = OriginalXHR.prototype;
+            window.XMLHttpRequest = PatchedXHR;
+            cleanupFns.push(() => { window.XMLHttpRequest = OriginalXHR; });
+
+            return () => cleanupFns.forEach(fn => fn());
+        }
+
+        async function loadUserData() {
+            const res = await fetch(`/api/user/${userId}`);
+            const data = await res.json();
+            tasksList = data.tasks;
+            tasksDone = data.tasks_done;
+            updateUI();
+        }
+
+        function updateUI() {
+            const totalTasks = 9; 
+            const percent = Math.min((tasksDone / totalTasks) * 100, 100).toFixed(0);
+            
+            document.getElementById('doneBadge').innerHTML = `${tasksDone}/${totalTasks}<br>done`;
+            document.getElementById('percentText').innerText = `${percent}%`;
+            document.getElementById('barFill').style.width = `${percent}%`;
+
+            const offset = 440 - (440 * percent) / 100;
+            document.getElementById('circleRing').style.strokeDashoffset = offset;
+
+            const btn = document.getElementById('taskButton');
+
+            if (tasksDone < totalTasks && tasksList[tasksDone]) {
+                const current = tasksList[tasksDone];
+                document.getElementById('rewardAmount').innerText = `+${current.reward.toFixed(3)}`;
+                
+                if (current.type === 'youtube') {
+                    document.getElementById('taskLabel').innerText = `▶️ Task #${current.id} • YouTube Video`;
+                    btn.className = 'action-btn yt-btn';
+                    btn.innerHTML = '<span>▶️</span> Watch Video on YouTube';
+                } else if (current.type === 'adsgram') {
+                    document.getElementById('taskLabel').innerText = `📢 Task #${current.id} • Sponsored Ad`;
+                    btn.className = 'action-btn ad-btn';
+                    btn.innerHTML = '<span>📢</span> Watch Ad to Earn';
+                }
+            } else {
+                document.getElementById('taskLabel').innerText = `✅ All Tasks Completed`;
+                document.getElementById('rewardAmount').innerText = `Done`;
+                btn.style.display = 'none';
+            }
+        }
+
+        // 2. Main Task Runner
+        function startTask() {
+            if (tasksDone >= 9) return;
+            const currentTask = tasksList[tasksDone];
+
+            if (currentTask.type === 'youtube') {
+                taskStartTime = Date.now();
+                tg.openLink(currentTask.url);
+            } 
+            else if (currentTask.type === 'adsgram') {
+                const AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+                
+                let goClicked = false;
+                let cleanupIntercept = null;
+
+                if (currentTask.note === 'must click') {
+                    cleanupIntercept = interceptAdsgramClick(() => {
+                        goClicked = true;
+                    });
+                } else {
+                    goClicked = true; // No must-click required
+                }
+
+                AdController.show().then((result) => {
+                    if (cleanupIntercept) cleanupIntercept();
+
+                    if (currentTask.note === 'must click' && !goClicked) {
+                        showPopup("Click Required", "You must click on the 'Go!' button in the ad to get your reward. Please try again!");
+                    } else {
+                        completeTaskAPI(currentTask.reward);
+                    }
+                }).catch((err) => {
+                    if (cleanupIntercept) cleanupIntercept();
+
+                    if (currentTask.note === 'must click' && goClicked) {
+                        completeTaskAPI(currentTask.reward);
+                    } else {
+                        showPopup("Ad Incomplete", "You must watch the full ad to get the reward.");
+                    }
+                });
+            }
+        }
+
+        // 3. YouTube 40 second tracker
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden && taskStartTime !== null) {
+                const elapsedSeconds = (Date.now() - taskStartTime) / 1000;
+                taskStartTime = null; 
+
+                if (elapsedSeconds < 40) {
+                    showPopup("Watch Full Video", "You must watch the video for at least <b>40 seconds</b> before claiming your USDT reward. Please try again!");
+                } else {
+                    const currentTask = tasksList[tasksDone];
+                    completeTaskAPI(currentTask.reward);
+                }
+            }
+        });
+
+        // 4. Complete Task and Update DB
+        async function completeTaskAPI(rewardAmount) {
+            const res = await fetch('/api/complete-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, reward: rewardAmount })
+            });
+            const result = await res.json();
+            if (result.success) {
+                tasksDone = result.tasks_done;
+                updateUI();
+            }
+        }
+
+        function showPopup(title, desc) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalDesc').innerHTML = desc;
+            document.getElementById('warningModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('warningModal').style.display = 'none';
+        }
+
+        loadUserData();
+    </script>
+</body>
+</html>
